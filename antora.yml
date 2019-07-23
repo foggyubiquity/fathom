@@ -1,0 +1,8 @@
+name: language
+title: Language
+version: master
+nav:
+- modules/ROOT/nav.adoc
+- modules/service/nav.adoc
+- modules/suite/nav.adoc
+- modules/template/nav.adoc

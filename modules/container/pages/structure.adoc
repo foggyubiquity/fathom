@@ -1,0 +1,551 @@
+= Container: Structure
+Keidrych Anton-Oates <me@keidrych.com>
+:description: TODO
+:keywords: microservices, governance, suite, group
+:toc: ~
+
+[NOTE]
+====
+* *File:*		`*.container.yaml`
+* *Repository:* _Code_
+====
+
+[TIP]
+.Absolute Minimum Necessary Keys
+====
+
+[source, yaml]
+----
+exampleSystem:
+⇛ exampleContainer:
+⇛   version: 'v1.8.x'
+----
+
+… the provision of these three keys is analogous to `docker run exampleSystem/exampleContainer:v1.8.x` and should be all that's necessary for a well defaulted application to run in a Foggy world.
+
+====
+
+NOTE: '⇛' character is used throughout this documentation where items are mandatory with respect to the parent YAML key. If not specified, then item is optional.
+
+== Mapping to Container Image Repositories
+
+All major cloud native & agnostic architecture patterns have 3 categorization levels, in https://c4model.com/[C4 Model] these are `software system`, `container`, `component`. Container Image Repositories i.e. https://hub.docker.com/[DockerHub] have been designed with only 2 categorization levels.
+
+To prevent re-invention of the wheel, a slight modification of standard naming approaches for Containers was implemented to support compatibility with 3 level software architectures, while maintaining backwards compatibility with the 2 category Repository naming approach.
+
+[source, yaml]
+----
+exampleSystem:
+⇛ exampleContainer:
+    component: 'algorithmic'
+⇛   version: 'vTag'
+----
+
+Results in:
+* `exampleSystem/exampleContainer:vTag` or
+* `exampleSystem/exampleContainer-algorithmic:vTag` if `component` key has been provided
+
+Strictly speaking Tag Names are used for Software & Release Versioning. An deep dive into this can be found on [Foggy Ubiquity: Secure Containers] & [Foggy Ubiquity: Human Service Versioning] as such the only logical location for injection of `component` while maintaining human & filtering capability was post `containerName`
+
+== `systemTarget` Technology Descriptor
+
+[source, yaml]
+----
+exampleSystem:
+⇛ exampleContainer: {}
+  system: {}
+----
+
+Configuration automatically inherited from higher architectural levels and merged with priority on lower level configuration. i.e.:
+
+[source, yaml]
+----
+userManagement:
+  authentication:
+		environment:
+			variable:
+				REDIS: '192.168.0.1'
+	system:
+		environment:
+			variable:
+				REDIS: `localhost`
+----
+
+The container `authentication` environment `REDIS` would override the `system` defined value.
+
+[CAUTION]
+.Inheritance Order
+====
+`deploymentTarget` ⇛ `systemTarget` ⇛ `containerTarget` (`componentTarget`)
+
+Furthest right matching value for any setting overrides left value.
+====
+
+[NOTE]
+.Implementation Patterns
+====
+For simple Software Systems, the `system` values may be bundled into each `container` definition file following the distributed pattern. In more complex (most) situations a federated approach is more suitable where `system` keys would be managed in a dedicated repository.
+====
+
+Additional information on the xref:software-system:index.adoc[`system` Technology Descriptor].
+
+== `containerTarget` Technology Descriptor
+
+[source, yaml]
+----
+exampleSystem
+  exampleContainer:
+    availability: {}
+    circuitBreaker: {}
+    commandLineInterface: {}
+    component: string
+    daemon: boolean
+    endpoint: {}
+    environment: {}
+    label: {}
+    layer: string
+    repository: {}
+    resource: {}
+    security: {}
+    stateful: {}
+    version: {}
+----
+
+… illustrates a high level overview of the logical configuration sections. Detailed information is located under each subheading below. Where values for keys are shown they are the default values.
+
+=== `availability`
+
+[source, yaml]
+----
+exampleSystem:
+  exampleContainer:
+    availability:
+      gracePeriod:
+        boot: 1
+        stability: 0
+        termination: 5
+      minimum: 1
+      maximum: 2
+      probe:
+        health:
+          interval: 10
+          path: '/'
+          port: 80
+        ready:
+          interval: 5
+          path: '/'
+          port: 80
+        timeout: 1
+      scalingEvent: {}
+----
+
+* `gracePeriod`: minimum time in seconds to wait for events to occur
+** `boot`: `container / component` & container operating system startup boot time, this should be the minimum time before a health check endpoint is available to process a request.
+** `stability`: time to wait in seconds for the health check endpoint to ensure consistent returns after boot time has been completed. Typically used in legacy applications that need to stabilize their upstream and downstream communications when started or have large amounts of data to sync.
+** `termination`: maximum time in seconds before hard terminating the container operating system. By nature it cannot guarantee the management technology will provide this long to terminate, where supported by orchestration systems this is the time to wait after `SIGTERM` before `SIGKILL` is issued to the container operating system.
+* `minimum`: guaranteed minimum number of `container / component` replicas always available
+* `maximum`: when scaling ensure that this number is not exceeded
+* `probes`: `/health` is actual health i.e has software crashed, and `/ready` is ability to receive traffic
+*** `interval`: time in seconds for checking endpoint
+*** `path`: endpoint path relative to container's `localhost`
+*** `port`: internal port the probe endpoint is listening on
+** `timeout`: time in seconds for probe to respond. Set identically for both `/health` and `/ready`. In well designed software systems provision of different values for `/health` and `/ready` is tautological.
+** `scalingEvent`: is a pass-through object i.e. the object is provided to the container management technology and should conform with its expectations for scaling.
+
+[TIP]
+.http://www.cyvive.io/governance[Cyvive Implementation]
+====
+Automatically stalls deployments as failed if the `container` or `component` fails to enter `ready` state using one of the following time-lines in order of priority rounded to the nearest second:
+
+1. `probe.ready`: gracePeriod.boot + gracePeriod.stability + (probe.ready.interval . 2) {default: 3.3}
+2. `probe.health`: gracePeriod.boot + gracePeriod.stability + probe.health.interval			{default: 3.3}
+3. `gracePeriod.stability`: gracePeriod.boot + gracePeriod.stability + 10								{default: 3.3}
+4. `gracePeriod.boot`: gracePeriod.boot + 10																						{default: 3.3}
+5. `default settings`: `33` seconds
+
+10% buffer is applied to times to ensure container scheduling / restarting via the orchestrator doesn't introduce false-positives.
+====
+
+=== `circuitBreaker`
+
+CAUTION: under discussion (seeking production requirements)
+
+=== `commandLineInterface`
+
+[source, yaml]
+----
+exampleSystem:
+  exampleContainer:
+    commandLineInterface:
+      argument: []
+      command: ''
+----
+
+… override path for container start commands. While the container itself may contain start commands, often enterprise preference is to maintain a single interface for all configuration.
+
+* `argument`: standard cli arguments for execution. e.g. ['--list', '--debug']
+* `command`: root command to execute when starting the container. e.g. '/usr/local/bin/command' should this not be specified then the default command the container was built with will be executed.
+
+=== `component`
+
+[source, yaml]
+----
+exampleSystem:
+  exampleContainer:
+    component: ''
+----
+
+… component as specified in https://c4model.com/[C4 Model] ideally this would be for algorithmic capabilities without data-management i.e. Functions in MicroService architecture.
+
+=== `daemon`
+
+[source, yaml]
+----
+exampleSystem:
+  exampleContainer:
+    daemon: false
+----
+
+… upgrades the `container` to run as a _Daemon_ type in Cloud Native Architecture ensuring that every physical node belonging to cluster will have this _Daemon_ available on a low-latency local network hop.
+
+=== `endpoint`
+
+[source, yaml]
+----
+exampleSystem:
+  exampleContainer:
+    endpoint:
+      domain: {}
+      port: 80
+      provide: ['/']
+      scheme: 'https'
+      require: []
+----
+
+… created for every `container / component`. If `domain` is not specified this `container / component` will be available *only* within the cluster. Two DNS entries are generated:
+
+* `componentName_containerName.systemName.deploymentTarget.domain` always provides the latest version
+* `version_componentName_containerName.systemName.deploymentTarget.domain`
+
+If this is not a `component` then `componentName` will be omitted.
+
+WARNING: `component` names are assumed incapable of replicating `version` names.
+
+* `port`: open port for inbound interaction.
+* `provide`: *important* for correct dependency management the `provide` endpoints are the registration points in the deployment graph.
+* `scheme`: extensible against the scheme definitions in RFC standards, the key types are _http_ and _https_ where specifying https will cause auto-creation of SSL certificates at the cluster ingress point via https://letsencrypt.org/[Lets Encrypt]
+
+[NOTE]
+.DNS Generation
+====
+`_` is used to separate values to prevent conflict and ensure compliance with https://semver.org/[SemVer] where `-` may be provided for custom metadata information.
+
+Additional `.` dots are not used to separate values to prevent deep dot lookups. i.e. Kubernetes already provides 5 `.` dots for container addressing.
+====
+
+*Complex root keys:*
+
+[source, yaml]
+----
+domain:
+  'xyz.com': ['DEVLIKE', 'HALIKE', 'PRODLIKE']
+  'testing.co': ['DEVLIKE']
+----
+
+`domain` object is structured as follows:
+* `key`: the domain name to expose against. This should be the Fully Qualified Domain Name (_FQDN_) as autogenerated DNS structure applies inside the cluster only.
+* `value`: array of `operatingEnvironment(s)` to expose specific `domain(s)` against.
+
+[source, yaml]
+----
+require:
+  - 'redux.exampleSystem:443/api/v1/ending': ['incoming']
+  - 'exampleContainer.exampleSystem:80/v1/': ['incoming', 'outgoing']
+  - '162.0.5.2:8080/': ['outgoing']
+	- '@version': {}
+----
+
+`require` while optional, is recommended as it identifies all dependencies this `container / component` requires prior to container startup.
+
+Often prior versions of the same `container / component` may be consumed by newer versions. Typically to prevent code duplication and stabilize major API versions. Prior versions can be specified either using the full DNS name as automatically generated above or via the shorthand `@version`. Any value provided to `@version` will be ignored and both `incoming` & `outgoing` traffic will be permitted against prior versions of the same `container / component`.
+
+The `require` object is structured as follows:
+- `key`: Uniform Resource Identifier (URI) [RFC 3986](https://www.ietf.org/rfc/rfc3986.txt) compliant. The scheme is unnecessary as any routing restrictions are scoped as above
+- `value`: traffic direction for firewall / security registration
+
+[TIP]
+.http://www.cyvive.io/governance[Cyvive Implementation]
+====
+In the event a `require` is not registered with **Cyvive** it will be considered external to the cluster and **assumed** to already exist. The same applies for prior versions.
+====
+
+=== `environment`
+
+[source, yaml]
+----
+exampleSystem:
+  exampleContainer:
+    environment:
+      files:
+        config: {}
+        secret: {}
+      variable: {}
+----
+
+… all items are directly exposed.
+
+*Complex root keys:*
+[source, yaml]
+----
+files:
+  config:
+    'alpha':
+      mountPath: '/alpha'
+      data:
+        - name: configDetail
+          value: 'string of information'
+    'delta':
+      inheritSystem: false
+----
+
+Each item in `config` is a representation of a _ConfigMap_ with individual items specified in the array object under `data`. Each item represents an individual file. `mountPath` is the directory location in the container that the _ConfigMap_ should be mounted to.
+
+If `inheritSystem` is provided the configuration will be loaded from the system settings enabling a more _global_ oriented view of configuration
+
+[source, yaml]
+----
+files:
+  secrets:
+    'secretname':
+      type: 'opaque'
+      mountPath: '/secret-location'
+      data:
+        - name: secretInfo
+          value: (base64 string)
+    'anothersecret':
+      inheritSystem: false
+----
+
+Each item in `secrets` is a map with individual items under `data` representing files to be mounted into the `mountPath` location in the container.
+
+
+If `inheritSystem` is provided the secret will be loaded from the system settings enabling a more _global_ oriented view of configuration
+
+[source, yaml]
+----
+variable:
+  'exposeName': 'exposeValue'
+----
+
+Direct mapping of the `key` to `value` provided as an environmental variable when executing the container start command.
+
+*Reserved Environment Keys*
+
+* `SELF_NAME`: name of the `container / component`. This should also be the `hostname` of the running container for maximum compatibility
+* `SELF_NAME_LOADBALANCER`: to assist in discovery, this is the versioned LoadBalancer endpoint for in cluster communication to this container and its replicas. Relative to the deploymentTarget and not the Fully Qualified Domain Name (FQDN) of internal or external registration
+* `SELF_DEPLOYMENTTARGET`: _deploymentTarget_ that the Container/NanoService has been deployed into
+* `SELF_IP`: the internal cluster IP of the container
+* `SELF_MIN_MEMORY`
+* `SELF_MIN_CPU`
+* `SELF_MAX_MEMORY`
+* `SELF_MAX_CPU`
+
+=== `hardWired`
+
+[source, yaml]
+----
+exampleSystem:
+  exampleContainer:
+    hardWired:
+      clusterDNS: ''
+----
+
+… is a catch-all for compatibility with non-governed processes. _It is strongly recommended not to use these keys unless absolutely necessary_ as each key will disable some governance functionality and introduce independent manual management scenarios that wouldn't normally be necessary.
+
+- `clusterDNS`: is a hard overwrite of the cluster internal load balancer endpoint for the `container / component`. It disables the auto-generation capabilities and can help with initially migrating non Cloud Native items.
+
+=== `label`
+
+[source, yaml]
+----
+exampleSystem:
+  exampleContainer:
+    label:
+      = app:			autocompleted ~ appName
+      = component:	        autocompleted ~ component
+      = release:		autocompleted in PRODLIKE environments ~ canary or stable
+      = tier:			autocompleted ~ systemName
+      = version:		autocompleted ~ version key
+      {any others you require}
+----
+
+NOTE: the labels specified above are assumed to be automatically generated and owned by the implementation. Manually specifying them is tautological and would be ignored by the implementation.
+
+[CAUTION]
+.Containers at Scale
+====
+Avoid using _hotfix_ as a label. Versioning is available for all `version(s)` and simplifies consistency between environments.
+
+Avoid using _blue_ / _green_ for deploys as _canary_ has been proven to be a more stable; reduced risk; and governable approach. In Continuous Deployment all software passes through a _canary_ state anyway. (Under candidate based releases hotfixes are just releases that have been accelerated through the canary phase).
+====
+
+There is no limit to how many labels can be specified
+
+=== `layer`
+
+[source, yaml]
+----
+exampleSystem:
+  exampleContainer:
+    layer: 'base'
+----
+
+… is a concept often used in Enterprise Architecture. This key sparked more discussion than any other in the creation of this specification.
+
+The layer concept is used as part of the dependency graph generation process. Prioritizing and guaranteeing deployments of each layer prior to commencing the next, enabling a fail fast approach when any layer fails to deploy.
+
+It is *not* an architectural specification, just categorization and prioritization approach. Cloud Native compatible Architectures are assumed to be used irrespectively.
+
+*Layers in Order*
+
+1. data
+2. communication
+3. cache
+4. backend
+5. frontend
+
+While strictly not necessary to specify, if known the `layer` should be specified as it allows for accelerated parallel deployment in the desired _deploymentTarget_
+
+=== `repository`
+
+[source, yaml]
+----
+exampleSystem
+  exampleContainer:
+    repository:
+      image:
+        domain: 'hub.docker'
+        name: 'exampleRedux'
+        officialImage: false
+        owner: 'exampleRedux'
+----
+
+… image registry auto-generated names use the format: `repository/owner/name` as such the default would be one of:
+
+* `hub.docker/exampleSystem/exampleContainer` or
+* `hub.docker/exampleSystem/exampleContainer-exampleComponent` if `component` key provided
+
+The `image` key allows customization to your needs in any combination using the following values:
+
+* `domain`: overrides `system` or `template` `domain` settings
+* `name`: overrides `exampleContainer` in the sample. This impacts deployed application name & container image repository URI generation.
+* `officialImage`: is a structural specification for _DockerHub_ where official images have a different retrieval structure. Setting this as true would result in _exampleContainer_ being the official image name or if provided `name` would still override to be the official image name.
+* `owner`: override for owner in technology descriptor
+
+=== `resource`
+
+[source, yaml]
+----
+exampleSystem:
+  exampleContainer:
+    resource:
+      max:
+        cpu: 500
+        memory: 1Gi
+      min:
+        cpu: 250
+        memory: 0.5Gi
+      qos: ''
+----
+
+… resource allocation is an important part of all container orchestration, and its *strongly* suggested these values are provided prior to deploying `container / component` to `production` _deploymentTarget_.
+
+* `max` absolute maximum requirements that we are prepared to allocate.
+* `min` minimum required in order to guarantee application boot and ready for traffic interaction.
+
+* `qos` is **mandatory** should `min` or `max` be specified
+
+If neither `min` or `max` are specified then `system` defaults (if specified) will be used. The ability to provide `system` resource defaults is to ensure safe co-habitation of Services / Applications / Components when / if they go rogue.
+
+* `cpu` are units of CPU core specified in 'm' thus for a single CPU core _1000_ should be used. Appending the 'm' is unecessary.
+* `memory` should always have the multiplier specified as part of the value i.e. 'Gi' any suitable value can be specified from the following: `Ki Mi Gi Ti Pi Ei`
+
+`qos` follows the approach:
+
+- *guaranteed*: highest possible level, everything not this level will suffer CPU _pause_ events to ensure these pods continue to operate. `max` values will be utilized exclusively.
+- *burstable*: _default_ `min` values are allocated to the pod as minimum required to run. If `max` is specified these limits will be placed on resources, if `max` unspecified , no upper limits are placed on resources.
+- *effort*: can be used when the application is lowest priority of them all. `min`, `max` CPU values are totally ignored. `min` memory if provided is utilized.
+
+=== `security`
+
+CAUTION: under discussion (seeking production requirements)
+
+[source, yaml]
+----
+exampleSystem:
+  exampleContainer:
+    security:
+      account:
+        name: alternativeOne
+        reference: admin
+----
+
+- `account`: should an account be required that isn't the system security account or 'default' i.e. another system's account. It can be overriden here. _Specifying will create the account if it doesn't exist_
+
+=== `stateful`
+
+CAUTION: under discussion (seeking production requirements)
+
+[source, yaml]
+----
+exampleSystem:
+  exampleContainer
+    stateful:
+      cloudNative: false
+      databaseName: ''
+      individualServices: false
+      replica: 3
+      sharedStorage: false
+      volume:
+        'avolume':
+          mountPath: '/avolume'
+          size: '10Gi'
+          storageClass: ''
+----
+
+* `cloudNative`: Enables the ability to deploy stateful applications in parallel and will automatically compact number of replicas down in envionments that aren't 'HALIKE' or 'PRODLIKE' to save resources.
+* `databaseName`: standard application naming will be applied if this field is omitted. Its frequently used in custom templates for configuring some of the expected internals
+* `individualServices`: some applications can operate under a common service endpoint, others such as MongoDB require fixed service endpoints for each database
+* `replica`: number of PODS that should be deployed, if the backend supports it anti-affinity rules will already be in place per Availablility Zone and Host.
+* `sharedStorage`: determines if the PODS should have mount the same storage or have unique storage per pod (**warhing** multi-mount storage is unsupported by most storage drivers)
+* `storageClass`: the type of storage strategy that should be applied
+
+In providing a consistent minimal configuration the `stateful` configuration integrates with `endpoint` and it should be used for accessing accordingly
+
+Amount of time that should be given after sending _kill_ signal to the container OS before terminating and removing the container.
+
+=== `version`
+
+[source, yaml]
+----
+exampleSystem:
+  exampleContainer:
+    version: 'latest'
+----
+
+… configuration is not static, as such any implementation of this specification should be capable of versioning. Independent of the source code repository type used i.e. Git.
+
+WARNING: Implementations following this specification will key their internal configuration versioning to this value. Modifying configuration and *not* incrementing this value would be expected to override configuration for deployed `container / components`.
+
+Static labels i.e. `latest` can also be used with the understanding that configuration changes will be applied to all future _deploymentTarget_ and container images will be re-pulled every time.
+
+[TIP]
+.http://www.cyvive.io/governance[Cyvive Implementation]
+====
+For effective governance of infrastructure in cloud native approaches Semantic Versioning [SemVer](https://semver.org/) is sanest choice. While Container/NanoService versioning typically is best systemd to [ComVer](https://github.com/staltz/comver)
+
+Integration with SemVer only tracks `major` `minor` `patch` the _extensions format_ is stripped off for tracking purposes.
+
+Container images when using SemVer are *not* re-pulled from the image repository as they are assumed to be immutable.
+====
+

@@ -1,0 +1,78 @@
+= Deployment Targets
+Keidrych Anton-Oates <me@keidrych.com>
+:description: TODO
+:keywords: microservices, governance, environment, deploymentTarget, operatingEnvironment
+
+[NOTE]
+====
+* *File:*		`*.td.yaml`
+* *Repository:* _Governance_
+====
+
+== Reasoning
+
+… xref:devsecops::continuous-deployment/index.adoc[_Continuous Deployment_] is about building trust for the xref:software-system:index.adoc[Software System] as a whole, not just the xref:component:index.adoc[Component] or xref:container:index.adoc[Container]. In order to do this, a xref:software-system:index.adoc[Software System] progresses through a series of increasing environment complexity or `deploymentTarget(s)`. Validating the xref:software-system:index.adoc[Software System] is stable within each `deploymentTarget` risk of business reputation damage reduces and the xref:software-system:index.adoc[Software System] would be manually or automatically promoted to the next `deploymentTarget`.
+
+This approach provides a foundational layer for _Agnostic_ infrastructure as the ability to accurately control the environment of xref:software-system:index.adoc[Software System(s)] is critical for multi-cloud / fog success.
+
+== Understanding
+
+… `deploymentTargets(s)` are meta-descriptions of `operatingEnvironments` and can be defined without restriction. As these are meta-descriptions the intention is to provide a template from which an execution environment would be created. Suggested defaults and naming scheme is as follows:
+
+* *dev* (type: _development_)
+** single container availability
+** minimum resource allocation
+** probes:
+*** ready
+* *ha* (type: _high availability_)
+** dual container availability
+** minimum resource allocation
+** probes:
+*** ready
+* *perf* (type: _performance_)
+** dual container availability
+** maximum resource allocation
+** probes:
+*** ready
+*** health
+* *prod* (type: _production_)
+** high availability
+** horizontal auto-scaling
+** maximum resource allocation
+** probes:
+*** ready
+*** health
+
+`deploymentTarget` selection is controlled via the `operatingEnvironment` field via the following selection process:
+
+|===
+|`operatingEnvironment` value|Environment Type
+|[] or [ 'DEVLIKE' ]|*dev* (default)
+|[ 'HALIKE' ]|*ha*
+|[ 'PRODLIKE' ]|*prod*
+|[ 'HALIKE', 'PRODLIKE' ]|*perf*
+|===
+
+[NOTE]
+.Environment Promotion
+====
+… a concept used in Continuous Deployment for validating / verifying Code is safe and stable in Production
+*development* ⇛ *high availability* ⇛ *performance* ⇛ *production*
+====
+
+`deploymentTarget(s)` natively provide support for multiple versions of:
+
+* xref:software-system:index.adoc[Software System(s)]
+* xref:container:index.adoc[Container(s)]
+* xref:component:index.adoc[Component(s)]
+
+[TIP]
+.http://www.cyvive.io/governance[Cyvive Implementation]
+====
+All `operatingEnvironment` types have provided with default `deploymentTarget(s)` matching the naming scheme of `dev`, `ha`, `perf`, `prod`. _Cyvive_ also implements the standard _Environment Promotion_ approach mentioned in the NOTE ensuring rapid adoption of Continuous Deployment for any Organization.
+
+http://www.cyvive.io/governance[Cyvive] has the technological capability to deploy xref:software-system:index.adoc[Software System], xref:container:index.adoc[Container] & xref:component:index.adoc[Component] in parallel while respecting dependencies.
+
+Additionally, _shadow traffic_ is automatically routed from *prod* into *perf* environment(s) where return values are thrown away to prevent interference with production.
+====
+

@@ -1,0 +1,65 @@
+= Software System: Structure
+Keidrych Anton-Oates <me@keidrych.com>
+:description: TODO
+:keywords: microservices, governance, suite, group
+:toc: ~
+
+[NOTE]
+====
+* *File:* `*.system.yaml`
+* *Repository:* _Governance_
+====
+
+[source, yaml]
+----
+(name of system):
+  system:
+    environment: {}
+    repository:
+      image:
+        auth: {}
+        domain: 'hub.docker.io'
+        owner: (software system)
+    security: {}
+----
+
+… `system` is a reserved keyword. Any keys associated with `system` should be applied as defaults to any xref:container:index.adoc[Containers] associated with the Software System.
+
+== `environment`
+
+… structural copy of xref:container:index.adoc#_environment[Container: `environment`]
+
+== `repository`
+
+IMPORTANT: DockerHub set the standard for organizing Containers in a Container Image Repository (CIR), the general expectation is that the CIR format of `hub.docker.io/(owner)/(image):(tag)` is observed where owners following best practice are Software Systems
+
+[source, yaml]
+----
+(name of system):
+  system:
+    repository:
+      image:
+        auth: {}
+        domain: 'hub.docker.io'
+        owner: (software system)
+----
+
+… structurally modelled on xref:container:index.adoc#_repository[Container: `repository`] with slight differences as follows:
+
+[source, yaml]
+----
+image:
+  auth:
+    '(login information)': 'ZmF0aG9tYWJsZQo='
+  domain: 'gcr.io'
+  owner: '(software system)'
+----
+
+- `auth`: is a key value series of base64 encoded objects containing the Docker login information.
+- `domain`: container repository domain information, this will become the default for all items registered against this system
+- `owner`: by default `owner` would be the `(name of system)`. This provides the option to provide a different owner compared to Software System name.
+
+== `security`
+
+… structural copy of xref:container:index.adoc#_security[Container: `security`]
+

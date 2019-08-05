@@ -1,0 +1,37 @@
+= Software System
+Keidrych Anton-Oates <me@keidrych.com>
+:description: TODO
+:keywords: microservices, governance, suite, group
+
+[NOTE]
+====
+* *File:* `*.system.yaml`
+* *Repository:* _Governance_
+====
+
+== Reasoning
+****
+A software system is the highest level of abstraction and describes something that delivers value to its users, whether they are human or not. This includes the software system you are modelling, and the other software systems upon which your software system depends (or vice versa). https://c4model.com/[C4 Model]
+****
+
+The https://c4model.com/[C4 Model] provides a static view of a *single* Software System, however in reality, Software Systems are often interdependent and some relational system needs to exist between them. Additionally, while it is often desired to aggregate the metadata of the Software System's xref:container:index.adoc[Container(s)] into a central location. Its often not practical as xref:container:index.adoc[Container(s)] are frequently added and their configuration modified against existing Software Systems.
+
+== Understanding
+
+… a non-exhaustive list of the Software Systems under Governance and their respective `system` level configuration.
+
+In large organizations, a Software System may ultimately be the smallest unit of business decomposition
+
+=== Architectural Equivalence
+
+|===
+|C4 Model|MicroService|TOGAF / OSIMMv2
+|Software System|Suite of Services|Group
+|===
+
+[TIP]
+.http://www.cyvive.io/governance[Cyvive Implementation]
+====
+There is no requirement to provide all named Software Systems in this file. http://www.cyvive.io/governance[Cyvive] is quite capable of internally creating and managing a Software System from the xref:container:index.doc[Container] or xref:component:index.doc[Component] specifications.
+====
+

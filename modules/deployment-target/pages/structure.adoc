@@ -1,0 +1,62 @@
+= Deployment Target: Structure
+Keidrych Anton-Oates <me@keidrych.com>
+:description: TODO
+:keywords: microservices, governance, environment, structure
+:toc: ~
+
+[NOTE]
+====
+* *File:*		`*.td.yaml`
+* *Repository:* _Governance_
+====
+
+[source, yaml]
+----
+dev:
+ha:
+perf:
+prod:
+mandatory:
+(others)
+----
+
+`mandatory` is *not* a `deploymentTarget`, instead it functions as an injection point for _Containers_ and that need to be available in *all* `deploymentTargets`. It follows the xref:container:index.adoc[Container] specification with the exclusion of the `groups` key as `mandatory` becomes the xref:container:index.adoc[Container] group.
+
+== `deploymentTarget` Technology Descriptor
+
+NOTE: '⇛' character is used throughout this documentation where items are mandatory with respect to the parent YAML key. If not specified, then item is optional.
+
+[source, yaml]
+----
+dev:
+  environment: {}
+⇛ operatingEnvironment: []
+  resource: {}
+----
+
+== `environment`
+
+… structural copy of xref:container:index.adoc#_environment[Container: `environment`]
+
+== `operatingEnvironment`
+
+[source, yaml]
+----
+dev:
+⇛ operatingEnvironment:
+⇛   []
+----
+
+`template` type selection is controlled via the `operatingEnvironment` field as explained in xref:index.adoc#_understanding[Understanding]
+
+*Allowed Values*:
+
+* DEVLIKE
+* HALIKE
+* PRODLIKE
+
+== `resource`
+
+… structural copy of xref:continer:structure.adox#_resource[Container: `resource`]
+
+

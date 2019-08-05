@@ -1,0 +1,45 @@
+= Container
+Keidrych Anton-Oates <me@keidrych.com>
+:description: TODO
+:keywords: microservices, governance,
+
+[NOTE]
+====
+* *File:*		`*.container.yaml`
+* *Repository:* _Code_
+====
+
+== Reasoning
+****
+A container represents something that hosts code or data. A container is something that needs to be running in order for the overall software system to work. https://c4model.com/[C4 Model]
+****
+
+Production Software is a complex interweaving of the application, operating system, local, remote supporting services and permissions and configuration. Software may also need to interact with previous versions of itself.
+
+PaaS, IaaS, FaaS, all require intricate configuration patterns for success, and these patterns need to be governed and styled suitably for long-term management. The movement of software between one PaaS provider to another can be a significantly complex process, FaaS can have up to 100x more complex dependency mappings than MicroServices.
+
+The reality is technology and how software is deployed and managed changes over time due to organizational needs and competition. The configuration of existing software only changes with updates and security keys.
+
+== Understanding
+
+… in following a Federated approach, the Container specification ensures a central location for
+
+* secrets (encrypted)
+* configuration
+* deployment information
+* resource requirements
+* quality of service requirements
+
+=== Architectural Equivalence
+
+|===
+|C4 Model|MicroService|TOGAF / OSIMMv2
+|Container|MicroService|Service
+|===
+
+[TIP]
+.http://www.cyvive.io/governance[Cyvive Implementation]
+====
+File can also be called: `cyvive.yaml` for convenience. Alternatively the Continuous Integration (CI) system can push this configuration via REST.
+====
+

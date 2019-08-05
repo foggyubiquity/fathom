@@ -3,6 +3,6 @@ title: Language
 version: master
 nav:
 - modules/ROOT/nav.adoc
-- modules/service/nav.adoc
-- modules/suite/nav.adoc
-- modules/template/nav.adoc
+- modules/deployment-target/nav.adoc
+- modules/software-system/nav.adoc
+- modules/container/nav.adoc
